@@ -6,24 +6,18 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
 ```
 
 ### Información sobre las Estadísticas
 
-**Fuentes**: Johns Hopkins University, WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (para pruebas y hospitalizaciones), departamentos de salud estatales y nacionales, y reportajes de medios de comunicación locales. Más información [aquí](https://urldefense.proofpoint.com/v2/url?u=https-3A__systems.jhu.edu_research_public-2Dhealth_ncov_&d=DwMFaQ&c=n6-cguzQvX_tUIrZOS_4Og&r=ZNGvwmzlj8kMBY6JiOVCuA&m=I4tRzMk97krELxTlEBHo8DfBIHceLgA3njBSxpFaSkY&s=49InWPUk0UW8sqN1BzfKXUioxPiG_Z21fDUGZcgkaWE&e=).
+**Fuentes**: Johns Hopkins University, WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (para pruebas y hospitalizaciones), departamentos de salud estatales y nacionales, y reportajes de medios de comunicación locales. Más información [aquí](https://urldefense.proofpoint.com/v2/url?u=https-3A__systems.jhu.edu_research_public-2Dhealth_ncov_&d=DwMFaQ&c=n6-cguzQvX_tUIrZOS_4Og&r=ZNGvwmzlj8kMBY6JiOVCuA&m=I4tRzMk97krELxTlEBHo8DfBIHceLgA3njBSxpFaSkY&s=49InWPUk0UW8sqN1BzfKXUioxPiG_Z21fDUGZcgkaWE&e=). Para información detallada de la información en Colombia se usaron los reportes diarios del [Instituto Nacional de Salud](https://www.ins.gov.co/Noticias/Paginas/Coronavirus.aspx).
 
 * A partir del 14 de abril, los casos confirmados incluyen presuntos casos positivos y casos probables, de acuerdo con las [pautas](https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html) de los Centros de Control y Prevención de Enfermedades de Estados Unidos (CDC).
 
 * A partir del 14 de abril, los totales de muertes en los Estados Unidos incluyen confirmados y probables, de acuerdo con las [pautas](https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html) de los CDC.
 
 * Los casos recuperados fuera de China son estimaciones basadas en informes de medios de comunicación locales y en informes estatales y locales cuando están disponibles, y por lo tanto pueden ser sustancialmente más bajos que el número real.
-
-$(\text{Casos Activos} = \text{Total Confirmados} - \text{Total Recuperados} - \text{Total de Muertes})$
-
-$(\text{Tasa de Incidencia} = \frac{\text{Total Confirmados}}{100.000 \text{ personas}} )$
-
-$(\text{Tasa de Letalidad de Casos Confirmados (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}})$
 
 ```{r Data}
   library(tidyverse)
@@ -32,6 +26,10 @@ $(\text{Tasa de Letalidad de Casos Confirmados (%)} = \frac{\text{Número de mue
   library(ggthemes)
   library(knitr)
   library(kableExtra)
+  library(ggplot2)
+  library(reshape2)
+  library(magrittr)
+
 # Data sources: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (testing and hospitalizations), state and national government health departments, and local media reports.
 # https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv
 
@@ -50,14 +48,152 @@ colnames(confirmed_global_no_regions) <- countries
 confirmed_global_no_regions <- confirmed_global_no_regions %>% 
   mutate(Date = row.names(confirmed_global_no_regions)) %>%
   select(Date, everything()) %>%
-  mutate(Date=as.Date(Date, format = "%m/%d/%y"))
+  mutate(Date=as.Date(Date, format = "%m/%d/%y")) %<>% 
+  mutate_if(is.numeric,as.integer)
 
 ```
 
 ### Gráficas Importantes
 
-```{r Plots, echo=FALSE, out.width=70%}
-ggplot(confirmed_global_no_regions, aes(x = ))
+```{r Plots}
+global_descending_cases <- confirmed_global_no_regions %>%
+  select(-Date) %>%
+  .[,order(-.[nrow(.),])] %>%
+  mutate(Date = confirmed_global_no_regions$Date) %>%
+  select(Date, everything())
+
+current_top10_cases <- global_descending_cases %>%
+  select(1:10) %>% 
+  filter(Date >= "2020-03-01")
+  
+
+current_top10_cases_plot <- melt(current_top10_cases, id = "Date", value.name = "Confirmed_Cases") %>%
+  ggplot(aes(x = Date, y = Confirmed_Cases, colour = variable, group = variable)) + geom_line() +
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.title = element_blank(),
+        axis.title.x = element_text()) + 
+  labs(title = "Top 10 Countries with most Confirmed Cases",
+       subtitle = paste("Time Series of Total Confirmed Cases Since March 1, 2020 Until",
+                        format(tail(current_top10_cases$Date, 1), "%B %d, %Y")),
+       x = "Date")
+
+colombia_cases <- confirmed_global_no_regions %>%
+  select(Date, Colombia) %>%
+  filter(Colombia > 0)
+
+colombia_cases_plot <- melt(colombia_cases, id = "Date", value.name = "Confirmed_Cases") %>%
+  ggplot(aes(x = Date, y = Confirmed_Cases, colour = variable, group = variable)) + geom_line() +
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text()) + 
+  labs(title = "Confirmed Cases in Colombia",
+       subtitle = paste("Time Series of Total Confirmed Cases Since First Case Until",
+                        format(tail(current_top10_cases$Date, 1), "%B %d, %Y")),
+       x = "Date")
+
+current_top10_cases_plot
+colombia_cases_plot
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r Colombia Data}
+
+# Data sources: Instituto Nacional de Salud - INS daily report Covid19 in Colombia.
+# https://github.com/sebaxtian/colombia_covid_19_pipe/blob/master/output/covid19co.csv
+
+#raw_colombia <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co.csv")
+
+processed_colombia <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co_time_line.csv")
+
+raw_colombia_samples <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co_samples_processed.csv")
+
+processed_colombia <- processed_colombia %>%
+  mutate(date=as.Date(date, format = "%d/%m/%y")) %<>% 
+  mutate_if(is.numeric,as.integer) %>%
+  filter(total_reported > 0)
+
+cummulative_cases_colombia <- processed_colombia %>% ggplot(aes(x = date, y = accum_reported)) + geom_line() + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Cumulative Confirmed Cases in Colombia",
+       subtitle = paste("Time Series of Cumulative Confirmed Cases Since First Case Until",
+                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Cumulative Confirmed Cases")
+
+daily_cases_colombia <- processed_colombia %>% ggplot(aes(x = date, y = total_reported)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Confirmed Cases in Colombia",
+       subtitle = paste("Time Series of Daily Confirmed Cases Since First Case Until",
+                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Confirmed Cases")
+
+daily_recovered_colombia <- processed_colombia %>% ggplot(aes(x = date, y = total_recupered)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Recovered Patients in Colombia",
+       subtitle = paste("Time Series of Daily Recovered Patients Since First Case Until",
+                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Recovered Cases")
+
+daily_deaths_colombia <- processed_colombia %>% ggplot(aes(x = date, y = total_deceased)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Deaths in Colombia",
+       subtitle = paste("Time Series of Daily Deaths Since First Case Until",
+                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Deaths")
+
+cummulative_cases_colombia
+daily_cases_colombia
+daily_recovered_colombia
+daily_deaths_colombia
+
+active_cases_colombia <- as.integer(processed_colombia[nrow(processed_colombia), 3]) - 
+                         as.integer(processed_colombia[nrow(processed_colombia), 5]) -
+                         as.integer(processed_colombia[nrow(processed_colombia), 7])
+
+DANE_population_estimate_colombia <- 50372424
+incidence_rate_colombia <- round(as.integer(processed_colombia[nrow(processed_colombia), 3]) /
+                           (DANE_population_estimate_colombia / 1000000))
+
+testing_rate_colombia <- round(as.integer(raw_colombia_samples[nrow(raw_colombia_samples), 2]) /
+                         (DANE_population_estimate_colombia / 1000000))
+
+mortality_rate_colombia <- round(as.integer(processed_colombia[nrow(processed_colombia), 7]) /
+                           as.integer(processed_colombia[nrow(processed_colombia), 3]) * 100,
+                           digits = 2)
+
+```
+
+$\text{Casos Activos} = \text{Total Confirmados} - \text{Total Recuperados} - \text{Total de Muertes} =$ **`r active_cases_colombia`**
+
+$\text{Tasa de Incidencia} = \frac{\text{Total Confirmados}}{1.000.000 \text{ de habitantes}} =$ **`r incidence_rate_colombia`**
+
+$\text{Tasa de Letalidad de Casos Confirmados (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}}\times 100 =$ **`r mortality_rate_colombia`**
+
+$\text{Muestras Procesadas por Millon de Habitantes} = \frac{\text{Número de muestras procesadas}}{1.000.000 \text{ de habitantes}} =$ **`r testing_rate_colombia`**
