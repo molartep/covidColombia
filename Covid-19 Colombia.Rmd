@@ -1,0 +1,63 @@
+---
+title: "Covid-19 Colombia"
+author: "Martin Olarte"
+date: "4/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message = FALSE)
+```
+
+### Información sobre las Estadísticas
+
+**Fuentes**: Johns Hopkins University, WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (para pruebas y hospitalizaciones), departamentos de salud estatales y nacionales, y reportajes de medios de comunicación locales. Más información [aquí](https://urldefense.proofpoint.com/v2/url?u=https-3A__systems.jhu.edu_research_public-2Dhealth_ncov_&d=DwMFaQ&c=n6-cguzQvX_tUIrZOS_4Og&r=ZNGvwmzlj8kMBY6JiOVCuA&m=I4tRzMk97krELxTlEBHo8DfBIHceLgA3njBSxpFaSkY&s=49InWPUk0UW8sqN1BzfKXUioxPiG_Z21fDUGZcgkaWE&e=).
+
+* A partir del 14 de abril, los casos confirmados incluyen presuntos casos positivos y casos probables, de acuerdo con las [pautas](https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html) de los Centros de Control y Prevención de Enfermedades de Estados Unidos (CDC).
+
+* A partir del 14 de abril, los totales de muertes en los Estados Unidos incluyen confirmados y probables, de acuerdo con las [pautas](https://www.cdc.gov/coronavirus/2019-ncov/cases-updates/cases-in-us.html) de los CDC.
+
+* Los casos recuperados fuera de China son estimaciones basadas en informes de medios de comunicación locales y en informes estatales y locales cuando están disponibles, y por lo tanto pueden ser sustancialmente más bajos que el número real.
+
+$(\text{Casos Activos} = \text{Total Confirmados} - \text{Total Recuperados} - \text{Total de Muertes})$
+
+$(\text{Tasa de Incidencia} = \frac{\text{Total Confirmados}}{100.000 \text{ personas}} )$
+
+$(\text{Tasa de Letalidad de Casos Confirmados (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}})$
+
+```{r Data}
+  library(tidyverse)
+  library(ggtext)
+  library(ggrepel)
+  library(ggthemes)
+  library(knitr)
+  library(kableExtra)
+# Data sources: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (testing and hospitalizations), state and national government health departments, and local media reports.
+# https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv
+
+raw_confirmed_global <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+
+confirmed_global_no_regions <- raw_confirmed_global %>%
+  group_by(`Country/Region`) %>%
+  select(-`Province/State`, -Lat, -Long) %>%
+  aggregate(. ~ `Country/Region`, data = ., FUN = sum)
+
+countries <- confirmed_global_no_regions$`Country/Region`
+
+confirmed_global_no_regions <- as.data.frame(t(confirmed_global_no_regions[,-1]))
+colnames(confirmed_global_no_regions) <- countries
+
+confirmed_global_no_regions <- confirmed_global_no_regions %>% 
+  mutate(Date = row.names(confirmed_global_no_regions)) %>%
+  select(Date, everything()) %>%
+  mutate(Date=as.Date(Date, format = "%m/%d/%y"))
+
+```
+
+### Gráficas Importantes
+
+```{r Plots, echo=FALSE, out.width=70%}
+ggplot(confirmed_global_no_regions, aes(x = ))
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
