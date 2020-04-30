@@ -95,8 +95,44 @@ colombia_cases_plot <- melt(colombia_cases, id = "Date", value.name = "Confirmed
                         format(tail(current_top10_cases$Date, 1), "%B %d, %Y")),
        x = "Date")
 
+uk_cases <- confirmed_global_no_regions %>%
+  select(Date, `United Kingdom`) %>%
+  filter(`United Kingdom` > 0)
+
+uk_cases_plot <- melt(uk_cases, id = "Date", value.name = "Confirmed_Cases") %>%
+  ggplot(aes(x = Date, y = Confirmed_Cases, colour = variable, group = variable)) + geom_line() +
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text()) + 
+  labs(title = "Confirmed Cases in United Kingdom",
+       subtitle = paste("Time Series of Total Confirmed Cases Since First Case Until",
+                        format(tail(current_top10_cases$Date, 1), "%B %d, %Y")),
+       x = "Date")
+
+uk_daily_cases <- uk_cases %>% 
+  mutate(`United Kingdom` = rbind(0, apply( uk_cases[-1] , 2 , diff ))) %>%
+  filter(`United Kingdom` > 0)
+
+daily_cases_uk <- uk_daily_cases %>% ggplot(aes(x = Date, y = `United Kingdom`)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Confirmed Cases in UK",
+       subtitle = paste("Time Series of Daily Confirmed Cases Since First Case Until",
+                        format(tail(uk_daily_cases$Date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Confirmed Cases")
+  
 current_top10_cases_plot
+uk_cases_plot
+daily_cases_uk
 colombia_cases_plot
+
 ```
 
 
