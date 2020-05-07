@@ -127,11 +127,51 @@ daily_cases_uk <- uk_daily_cases %>% ggplot(aes(x = Date, y = `United Kingdom`))
                         format(tail(uk_daily_cases$Date, 1), "%B %d, %Y")),
        x = "Date",
        y = "Daily Confirmed Cases")
+
+col_daily_cases <- colombia_cases %>% 
+  mutate(Colombia = rbind(0, apply( colombia_cases[-1] , 2 , diff ))) %>%
+  filter(Colombia > 0)
+
+daily_cases_col <- col_daily_cases %>% ggplot(aes(x = Date, y = Colombia)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Confirmed Cases in Colombia",
+       subtitle = paste("Time Series of Daily Confirmed Cases Since First Case Until",
+                        format(tail(col_daily_cases$Date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Confirmed Cases")
+
+us_cases <- confirmed_global_no_regions %>%
+  select(Date, US) %>%
+  filter(US > 0)
   
+us_daily_cases <- us_cases %>% 
+  mutate(US = rbind(0, apply( us_cases[-1] , 2 , diff ))) %>%
+  filter(US > 0)
+
+daily_cases_us <- us_daily_cases %>% ggplot(aes(x = Date, y = US)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Confirmed Cases in US",
+       subtitle = paste("Time Series of Daily Confirmed Cases Since First Case Until",
+                        format(tail(us_daily_cases$Date, 1), "%B %d, %Y")),
+       x = "Date",
+       y = "Daily Confirmed Cases")
+
 current_top10_cases_plot
 uk_cases_plot
 daily_cases_uk
+daily_cases_us
 colombia_cases_plot
+daily_cases_col
 
 ```
 
