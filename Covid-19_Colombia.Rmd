@@ -2,7 +2,9 @@
 title: "Covid-19 Colombia"
 author: "Martin Olarte"
 date: "4/28/2020"
-output: html_document
+output:
+  html_document:
+    css: style.css
 ---
 
 ```{r setup, include=FALSE}
@@ -29,6 +31,8 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
   library(ggplot2)
   library(reshape2)
   library(magrittr)
+  library(googlesheets)
+  library(googlesheets4)
 
 # Data sources: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO, the COVID Tracking Project (testing and hospitalizations), state and national government health departments, and local media reports.
 # https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv
@@ -47,6 +51,42 @@ colnames(confirmed_global_no_regions) <- countries
 
 confirmed_global_no_regions <- confirmed_global_no_regions %>% 
   mutate(Date = row.names(confirmed_global_no_regions)) %>%
+  select(Date, everything()) %>%
+  mutate(Date=as.Date(Date, format = "%m/%d/%y")) %<>% 
+  mutate_if(is.numeric,as.integer)
+
+raw_deaths_global <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+
+deaths_global_no_regions <- raw_deaths_global %>%
+  group_by(`Country/Region`) %>%
+  select(-`Province/State`, -Lat, -Long) %>%
+  aggregate(. ~ `Country/Region`, data = ., FUN = sum)
+
+countries <- deaths_global_no_regions$`Country/Region`
+
+deaths_global_no_regions <- as.data.frame(t(deaths_global_no_regions[,-1]))
+colnames(deaths_global_no_regions) <- countries
+
+deaths_global_no_regions <- deaths_global_no_regions %>% 
+  mutate(Date = row.names(deaths_global_no_regions)) %>%
+  select(Date, everything()) %>%
+  mutate(Date=as.Date(Date, format = "%m/%d/%y")) %<>% 
+  mutate_if(is.numeric,as.integer)
+
+raw_recovered_global <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv")
+
+recovered_global_no_regions <- raw_recovered_global %>%
+  group_by(`Country/Region`) %>%
+  select(-`Province/State`, -Lat, -Long) %>%
+  aggregate(. ~ `Country/Region`, data = ., FUN = sum)
+
+countries <- recovered_global_no_regions$`Country/Region`
+
+recovered_global_no_regions <- as.data.frame(t(recovered_global_no_regions[,-1]))
+colnames(recovered_global_no_regions) <- countries
+
+recovered_global_no_regions <- recovered_global_no_regions %>% 
+  mutate(Date = row.names(recovered_global_no_regions)) %>%
   select(Date, everything()) %>%
   mutate(Date=as.Date(Date, format = "%m/%d/%y")) %<>% 
   mutate_if(is.numeric,as.integer)
@@ -107,7 +147,7 @@ uk_cases_plot <- melt(uk_cases, id = "Date", value.name = "Confirmed_Cases") %>%
         legend.position = "none",
         axis.title.x = element_text()) + 
   labs(title = "Confirmed Cases in United Kingdom",
-       subtitle = paste("Time Series of Total Confirmed Cases Since First Case Until",
+       subtitle = paste("Time Series of Confirmed Cases Since First Case Until",
                         format(tail(current_top10_cases$Date, 1), "%B %d, %Y")),
        x = "Date")
 
@@ -166,6 +206,22 @@ daily_cases_us <- us_daily_cases %>% ggplot(aes(x = Date, y = US)) + geom_line()
        x = "Date",
        y = "Daily Confirmed Cases")
 
+total_cases_usa <- as.integer(us_cases[nrow(us_cases), 2])
+total_recovered_usa <- as.integer(recovered_global_no_regions[nrow(recovered_global_no_regions), "US"])
+total_deaths_usa <- as.integer(deaths_global_no_regions[nrow(deaths_global_no_regions), "US"])
+
+active_cases_usa <- total_cases_usa- total_recovered_usa - total_deaths_usa
+
+CensusBureau_pop_estimate_usa <- 329342883
+incidence_rate_usa <- round(total_cases_usa / (CensusBureau_pop_estimate_usa / 1000000))
+
+us_testing <- read_csv("https://raw.githubusercontent.com/COVID19Tracking/covid-tracking-data/master/data/us_current.csv")
+testing_rate_usa <- round((as.integer(us_testing[nrow(us_testing), 1]) +
+                            as.integer(us_testing[nrow(us_testing), 2])) /
+                         (CensusBureau_pop_estimate_usa / 1000000))
+
+mortality_rate_usa <- round(total_deaths_usa / total_cases_usa * 100, digits = 2)
+
 current_top10_cases_plot
 uk_cases_plot
 daily_cases_uk
@@ -174,7 +230,6 @@ colombia_cases_plot
 daily_cases_col
 
 ```
-
 
 ```{r Colombia Data}
 
@@ -249,27 +304,40 @@ daily_cases_colombia
 daily_recovered_colombia
 daily_deaths_colombia
 
-active_cases_colombia <- as.integer(processed_colombia[nrow(processed_colombia), 3]) - 
-                         as.integer(processed_colombia[nrow(processed_colombia), 5]) -
-                         as.integer(processed_colombia[nrow(processed_colombia), 7])
+total_cases_colombia <- as.integer(processed_colombia[nrow(processed_colombia), 3])
+total_recovered_colombia <- as.integer(processed_colombia[nrow(processed_colombia), 5])
+total_deaths_colombia <- as.integer(processed_colombia[nrow(processed_colombia), 7])
 
-DANE_population_estimate_colombia <- 50372424
-incidence_rate_colombia <- round(as.integer(processed_colombia[nrow(processed_colombia), 3]) /
-                           (DANE_population_estimate_colombia / 1000000))
+active_cases_colombia <- total_cases_colombia - total_recovered_colombia - total_deaths_colombia
+
+DANE_pop_estimate_colombia <- 50372424
+
+incidence_rate_colombia <- round(total_cases_colombia / (DANE_pop_estimate_colombia / 1000000))
 
 testing_rate_colombia <- round(as.integer(raw_colombia_samples[nrow(raw_colombia_samples), 2]) /
-                         (DANE_population_estimate_colombia / 1000000))
+                         (DANE_pop_estimate_colombia / 1000000))
 
-mortality_rate_colombia <- round(as.integer(processed_colombia[nrow(processed_colombia), 7]) /
-                           as.integer(processed_colombia[nrow(processed_colombia), 3]) * 100,
-                           digits = 2)
+mortality_rate_colombia <- round(total_deaths_colombia / total_cases_colombia * 100, digits = 2)
 
 ```
 
-$\text{Casos Activos} = \text{Total Confirmados} - \text{Total Recuperados} - \text{Total de Muertes} =$ **`r active_cases_colombia`**
+\vspace{60mm}
 
-$\text{Tasa de Incidencia} = \frac{\text{Total Confirmados}}{1.000.000 \text{ de habitantes}} =$ **`r incidence_rate_colombia`**
 
-$\text{Tasa de Letalidad de Casos Confirmados (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}}\times 100 =$ **`r mortality_rate_colombia`**
+$\text{Casos Activos en EEUU}$ **(`r format(active_cases_usa, scientific = FALSE, big.mark = ",")`)** $= \text{Confirmados}$ **(`r format(total_cases_usa, scientific = FALSE, big.mark = ",")`)** $- \text{ Recuperados}$ **(`r format(total_recovered_usa, scientific = FALSE, big.mark = ",")`)** $- \text{ Muertes}$ **(`r format(total_deaths_usa, scientific = FALSE, big.mark = ",")`)**
 
-$\text{Muestras Procesadas por Millon de Habitantes} = \frac{\text{Número de muestras procesadas}}{1.000.000 \text{ de habitantes}} =$ **`r testing_rate_colombia`**
+$\text{Tasa de Incidencia en EEUU} = \frac{\text{Confirmados}}{1.000.000 \text{ de habitantes}} =$ **`r format(incidence_rate_usa, scientific = FALSE, big.mark = ",")`**
+
+$\text{Tasa de Letalidad de Casos Confirmados en EEUU (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}}\times 100 =$ **`r mortality_rate_usa`**
+
+$\text{Muestras Procesadas por Millon de Habitantes en EEUU} = \frac{\text{Número de muestras procesadas}}{1.000.000 \text{ de habitantes}} =$ **`r format(testing_rate_usa, scientific = FALSE, big.mark = ",")`**
+\
+\
+\
+$\text{Casos Activos en Colombia}$ **(`r format(active_cases_colombia, scientific = FALSE, big.mark = ",")`)** $= \text{Confirmados}$ **(`r format(total_cases_colombia, scientific = FALSE, big.mark = ",")`)** $- \text{ Recuperados}$ **(`r format(total_recovered_colombia, scientific = FALSE, big.mark = ",")`)** $- \text{ Muertes}$ **(`r format(total_deaths_colombia, scientific = FALSE, big.mark = ",")`)**
+
+$\text{Tasa de Incidencia en Colombia} = \frac{\text{Confirmados}}{1.000.000 \text{ de habitantes}} =$ **`r format(incidence_rate_colombia, scientific = FALSE, big.mark = ",")`**
+
+$\text{Tasa de Letalidad de Casos Confirmados en Colombia (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}}\times 100 =$ **`r mortality_rate_colombia`**
+
+$\text{Muestras Procesadas por Millon de Habitantes en Colombia} = \frac{\text{Número de muestras procesadas}}{1.000.000 \text{ de habitantes}} =$ **`r format(testing_rate_colombia, scientific = FALSE, big.mark = ",")`**
