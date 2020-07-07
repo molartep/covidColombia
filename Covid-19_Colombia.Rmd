@@ -236,8 +236,6 @@ daily_cases_col
 # Data sources: Instituto Nacional de Salud - INS daily report Covid19 in Colombia.
 # https://github.com/sebaxtian/colombia_covid_19_pipe/blob/master/output/covid19co.csv
 
-#raw_colombia <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co.csv")
-
 processed_colombia <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co_time_line.csv")
 
 raw_colombia_samples <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co_samples_processed.csv")
@@ -341,3 +339,25 @@ $\text{Tasa de Incidencia en Colombia} = \frac{\text{Confirmados}}{1.000.000 \te
 $\text{Tasa de Letalidad de Casos Confirmados en Colombia (%)} = \frac{\text{Número de muertes registradas}}{\text{ Número de casos confirmados}}\times 100 =$ **`r mortality_rate_colombia`**
 
 $\text{Muestras Procesadas por Millon de Habitantes en Colombia} = \frac{\text{Número de muestras procesadas}}{1.000.000 \text{ de habitantes}} =$ **`r format(testing_rate_colombia, scientific = FALSE, big.mark = ",")`**
+
+```{r Anapoima Data}
+
+# Data sources: Instituto Nacional de Salud - INS daily report Covid19 in Colombia.
+# https://github.com/sebaxtian/colombia_covid_19_pipe/blob/master/output/covid19co.csv
+
+raw_col <- read_csv("https://raw.githubusercontent.com/sebaxtian/colombia_covid_19_pipe/master/output/covid19co.csv", na = '-', col_types = NULL)
+
+processed_col <- raw_col %>%
+  select(`CIUDAD DE UBICACION`, `DEPARTAMENTO O DISTRITO`, `ID DE CASO`, `FECHA REPORTE WEB`,`FECHA DE NOTIFICACION`, ATENCION, EDAD, SEXO, TIPO, ESTADO, `PAIS DE PROCEDENCIA`, `FECHA DE MUERTE`, `FECHA DIAGNOSTICO`, `FECHA RECUPERADO`, `TIPO RECUPERACION`, `PERTENENCIA ETNICA`, `NOMBRE GRUPO ETNICO`) %>%
+  mutate(`FECHA DE NOTIFICACION` = as.Date(`FECHA DE NOTIFICACION`, format = "%d/%m/%y"),
+         `FECHA REPORTE WEB` = as.Date(`FECHA REPORTE WEB`, format = "%d/%m/%y"),
+         `FECHA DE MUERTE` = as.Date(`FECHA DE MUERTE`, format = "%d/%m/%y"),
+         `FECHA DIAGNOSTICO` = as.Date(`FECHA DIAGNOSTICO`, format = "%d/%m/%y"),
+         `FECHA RECUPERADO` = as.Date(`FECHA RECUPERADO`, format = "%d/%m/%y"))
+
+anapoima <- processed_col %>% filter(`CIUDAD DE UBICACION` == 'Anapoima') %>%
+  select(-`CIUDAD DE UBICACION`, -`DEPARTAMENTO O DISTRITO`)
+
+anapoima
+
+```
