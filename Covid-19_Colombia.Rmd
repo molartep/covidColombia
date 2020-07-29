@@ -253,8 +253,16 @@ cummulative_cases_colombia <- processed_colombia %>% ggplot(aes(x = date, y = ac
         axis.title.x = element_text(),
         axis.title.y = element_text()) + 
   labs(title = "Cumulative Confirmed Cases in Colombia",
-       subtitle = paste("Time Series of Cumulative Confirmed Cases Since First Case Until",
-                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       subtitle = paste("Time Series Since First Case (",
+                  format(head(
+                    processed_colombia$date[processed_colombia$total_reported > 0], 1),
+                          "%B %d, %Y"),
+                  ") ",
+                  "Until Last Case (",
+                  format(tail(
+                    processed_colombia$date[processed_colombia$total_reported > 0], 1),
+                          "%B %d, %Y"),
+                  ")", sep = ""),
        x = "Date",
        y = "Cumulative Confirmed Cases")
 
@@ -266,8 +274,16 @@ daily_cases_colombia <- processed_colombia %>% ggplot(aes(x = date, y = total_re
         axis.title.x = element_text(),
         axis.title.y = element_text()) + 
   labs(title = "Daily Confirmed Cases in Colombia",
-       subtitle = paste("Time Series of Daily Confirmed Cases Since First Case Until",
-                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       subtitle = paste("Time Series Since First Case (",
+                  format(head(
+                    processed_colombia$date[processed_colombia$total_reported > 0], 1),
+                          "%B %d, %Y"),
+                  ") ",
+                  "Until Last Case (",
+                  format(tail(
+                    processed_colombia$date[processed_colombia$total_reported > 0], 1),
+                          "%B %d, %Y"),
+                  ")", sep = ""),
        x = "Date",
        y = "Daily Confirmed Cases")
 
@@ -279,8 +295,16 @@ daily_recovered_colombia <- processed_colombia %>% ggplot(aes(x = date, y = tota
         axis.title.x = element_text(),
         axis.title.y = element_text()) + 
   labs(title = "Daily Recovered Patients in Colombia",
-       subtitle = paste("Time Series of Daily Recovered Patients Since First Case Until",
-                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       subtitle = paste("Time Series Since First Recovery (",
+                  format(head(
+                    processed_colombia$date[processed_colombia$total_recupered > 0], 1),
+                          "%B %d, %Y"),
+                  ") ",
+                  "Until Last Recovery (",
+                  format(tail(
+                    processed_colombia$date[processed_colombia$total_recupered > 0], 1),
+                          "%B %d, %Y"),
+                  ")", sep = ""),
        x = "Date",
        y = "Daily Recovered Cases")
 
@@ -292,8 +316,16 @@ daily_deaths_colombia <- processed_colombia %>% ggplot(aes(x = date, y = total_d
         axis.title.x = element_text(),
         axis.title.y = element_text()) + 
   labs(title = "Daily Deaths in Colombia",
-       subtitle = paste("Time Series of Daily Deaths Since First Case Until",
-                        format(tail(processed_colombia$date, 1), "%B %d, %Y")),
+       subtitle = paste("Time Series Since First Death (",
+                  format(head(
+                    processed_colombia$date[processed_colombia$total_deceased > 0], 1),
+                          "%B %d, %Y"),
+                  ") ",
+                  "Until Last Death (",
+                  format(tail(
+                    processed_colombia$date[processed_colombia$total_deceased > 0], 1),
+                          "%B %d, %Y"),
+                  ")", sep = ""),
        x = "Date",
        y = "Daily Deaths")
 
@@ -356,8 +388,48 @@ processed_col <- raw_col %>%
          `FECHA RECUPERADO` = as.Date(`FECHA RECUPERADO`, format = "%d/%m/%y"))
 
 anapoima <- processed_col %>% filter(`CIUDAD DE UBICACION` == 'Anapoima') %>%
-  select(-`CIUDAD DE UBICACION`, -`DEPARTAMENTO O DISTRITO`)
+  select(-`CIUDAD DE UBICACION`, -`DEPARTAMENTO O DISTRITO`) %>%
+  mutate(case_num = 1:n())
 
-anapoima
+cumm_cases_anapoima <- anapoima %>% ggplot(aes(x = `FECHA REPORTE WEB`, y = case_num)) + geom_line() + geom_point(shape = 21, colour = "black", fill = "white", size = 1, stroke = 1) + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Cumulative Confirmed Cases in Anapoima",
+       subtitle = paste("Time Series Since First Case (",
+                        format(head(anapoima$`FECHA REPORTE WEB`, 1),
+                               "%B %d, %Y"),
+                        ") ",
+                        "Until Last Case (",
+                        format(tail(anapoima$`FECHA REPORTE WEB`, 1),
+                               "%B %d, %Y"),
+                        ")", sep = ""),
+       x = "Date",
+       y = "Cumulative Confirmed Cases")
+cumm_cases_anapoima
 
+anapoima_daily <- anapoima %>% count(`FECHA REPORTE WEB`)
+
+daily_cases_anapoima <- anapoima_daily %>% ggplot(aes(x = `FECHA REPORTE WEB`, y = n)) + geom_bar(stat = "identity", color="black", fill="white") + 
+  theme_fivethirtyeight() +
+  theme(plot.title.position = "plot",
+        plot.caption = element_markdown(),
+        legend.position = "none",
+        axis.title.x = element_text(),
+        axis.title.y = element_text()) + 
+  labs(title = "Daily Confirmed Cases in Anapoima",
+       subtitle = paste("Time Series Since First Case (",
+                        format(head(anapoima_daily$`FECHA REPORTE WEB`, 1),
+                               "%B %d, %Y"),
+                        ") ",
+                        "Until Last Case (",
+                        format(tail(anapoima_daily$`FECHA REPORTE WEB`, 1),
+                               "%B %d, %Y"),
+                        ")", sep = ""),
+       x = "Date",
+       y = "Daily Confirmed Cases")
+daily_cases_anapoima
 ```
